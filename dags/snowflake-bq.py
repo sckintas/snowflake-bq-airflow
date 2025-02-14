@@ -23,7 +23,8 @@ SNOWFLAKE_TABLES = [
     "order_reviews_dataset",
     "products_dataset",
     "sellers_dataset",
-    "product_category_name_translation_dataset"]
+    "product_category_name_translation_dataset",
+]
 
 # ✅ BigQuery table names (with stg_ prefix)
 BIGQUERY_TABLES = [f"stg_{table}" for table in SNOWFLAKE_TABLES]
@@ -55,9 +56,9 @@ def transfer_snowflake_to_bigquery(snowflake_table, bigquery_table, **kwargs):
     df = pd.DataFrame(rows, columns=columns)
 
     # Convert Decimal columns to Float explicitly
-    if 'GEOLOCATION_LAT' in df.columns and 'GEOLOCATION_LNG' in df.columns:
-        df['GEOLOCATION_LAT'] = df['GEOLOCATION_LAT'].astype(float)
-        df['GEOLOCATION_LNG'] = df['GEOLOCATION_LNG'].astype(float)
+    if "GEOLOCATION_LAT" in df.columns and "GEOLOCATION_LNG" in df.columns:
+        df["GEOLOCATION_LAT"] = df["GEOLOCATION_LAT"].astype(float)
+        df["GEOLOCATION_LNG"] = df["GEOLOCATION_LNG"].astype(float)
 
     # Load data into BigQuery
     bigquery_hook = BigQueryHook(gcp_conn_id=BIGQUERY_CONN_ID)
@@ -65,8 +66,10 @@ def transfer_snowflake_to_bigquery(snowflake_table, bigquery_table, **kwargs):
 
     table_id = f"{BQ_DATASET}.{bigquery_table}"
     job = client.load_table_from_dataframe(
-        df, table_id, job_config=bigquery.LoadJobConfig(
-            write_disposition="WRITE_TRUNCATE"))
+        df,
+        table_id,
+        job_config=bigquery.LoadJobConfig(write_disposition="WRITE_TRUNCATE"),
+    )
     job.result()  # Wait for the job to complete
 
     print(f"✅ Data loaded into BigQuery table {table_id}")
@@ -83,27 +86,35 @@ with DAG(
     # List to store transfer tasks
     transfer_tasks = []
 
-    for snowflake_table, bigquery_table in zip(
-            SNOWFLAKE_TABLES, BIGQUERY_TABLES):
+    for snowflake_table, bigquery_table in zip(SNOWFLAKE_TABLES, BIGQUERY_TABLES):
         transfer_task = PythonOperator(
             task_id=f"transfer_{bigquery_table}",
             python_callable=transfer_snowflake_to_bigquery,
             op_kwargs={
                 "snowflake_table": snowflake_table,
-                "bigquery_table": bigquery_table},
+                "bigquery_table": bigquery_table,
+            },
             provide_context=True,
         )
         transfer_tasks.append(transfer_task)
 
     dbt_run = BashOperator(
         task_id="dbt_run",
-        bash_command="export PATH=$PATH:/home/airflow/.local/bin && export DBT_PROFILES_DIR=/home/airflow/.dbt && cd /opt/airflow/dbt_project && dbt run",
+        bash_command=(
+            "export PATH=$PATH:/home/airflow/.local/bin && "
+            "export DBT_PROFILES_DIR=/home/airflow/.dbt && "
+            "cd /opt/airflow/dbt_project && dbt run"
+        ),
         dag=dag,
     )
 
     dbt_test = BashOperator(
         task_id="dbt_test",
-        bash_command="export PATH=$PATH:/home/airflow/.local/bin && export DBT_PROFILES_DIR=/home/airflow/.dbt && cd /opt/airflow/dbt_project && dbt test",
+        bash_command=(
+            "export PATH=$PATH:/home/airflow/.local/bin && "
+            "export DBT_PROFILES_DIR=/home/airflow/.dbt && "
+            "cd /opt/airflow/dbt_project && dbt test"
+        ),
         dag=dag,
     )
 
