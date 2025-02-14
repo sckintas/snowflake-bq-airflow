@@ -1,10 +1,11 @@
 name: Airflow CI
 
-on: [push, pull_request] # Run the workflow on push or pull request events
+on: [push, pull_request]  # Run the workflow on push or pull request events
 
 jobs:
-  airflow-lint-test:
-    runs-on: ubuntu-latest # Use the latest version of Ubuntu
+  airflow-ci:
+    runs-on: ubuntu-latest  # Use the latest Ubuntu version
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -16,7 +17,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install apache-airflow apache-airflow-providers-google apache-airflow-providers-snowflake flake8
+          pip install apache-airflow apache-airflow-providers-google apache-airflow-providers-snowflake flake8 dbt-bigquery
 
       - name: Lint DAGs
         run: |
@@ -25,3 +26,38 @@ jobs:
       - name: Test DAG imports
         run: |
           python -m unittest discover -s dags/ -p "test_*.py"
+
+      - name: Set up dbt
+        run: |
+          export PATH=$PATH:/home/airflow/.local/bin
+          export DBT_PROFILES_DIR=/home/airflow/.dbt
+          mkdir -p $DBT_PROFILES_DIR
+          echo '{}' > $DBT_PROFILES_DIR/profiles.yml  # Create a dummy profiles.yml for testing
+
+      - name: Run dbt Tests
+        run: |
+          cd /opt/airflow/dbt_project
+          dbt test
+
+      - name: Test Connection to Airflow
+        env:
+          AIRFLOW_SERVER: ${{ secrets.AIRFLOW_SERVER }}
+        run: |
+          curl -I http://${{ secrets.AIRFLOW_SERVER }}:8080 || echo "❌ Airflow is not reachable"
+
+      - name: Deploy DAGs to Airflow Server
+        env:
+          AIRFLOW_SERVER: ${{ secrets.AIRFLOW_SERVER }}
+          AIRFLOW_USER: ${{ secrets.AIRFLOW_USER }}
+        run: |
+          scp -r dags/ $AIRFLOW_USER@$AIRFLOW_SERVER:/opt/airflow/dags/
+          ssh $AIRFLOW_USER@$AIRFLOW_SERVER "sudo systemctl restart airflow-scheduler"
+
+      - name: Notify Slack on Failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data '{
+            "text": "🚨 Airflow CI/CD Pipeline Failed! Check GitHub Actions logs for details."
+          }' $SLACK_WEBHOOK_URL
