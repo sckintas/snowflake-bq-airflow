@@ -1,0 +1,206 @@
+version: 2
+
+sources:
+  - name: raw
+    database: expanded-curve-448520-h8
+    schema: raw_ecommerce
+    tables:
+
+      - name: stg_customers_dataset
+        identifier: stg_customers_dataset
+        description: "Raw customer data containing customer IDs and location details."
+        columns:
+          - name: customer_id
+            description: "Unique identifier for a customer."
+            tests:
+              - unique
+              - not_null
+          - name: customer_unique_id
+            description: "Non-unique identifier for a customer used across multiple orders."
+            tests:
+              - not_null
+          - name: customer_zip_code_prefix
+            description: "Zip code prefix of the customer."
+          - name: customer_city
+            description: "City where the customer is located."
+            tests:
+              - not_null
+          - name: customer_state
+            description: "State where the customer is located."
+            tests:
+              - not_null
+
+      - name: stg_geolocation_dataset
+        identifier: stg_geolocation_dataset
+        description: "Raw geolocation data containing zip code prefixes, latitude, longitude, city, and state."
+        columns:
+          - name: geolocation_zip_code_prefix
+            description: "Unique identifier for geographic locations."
+            tests:
+              - not_null
+          - name: geolocation_lat
+            description: "Latitude coordinate."
+            tests:
+              - not_null
+          - name: geolocation_lng
+            description: "Longitude coordinate."
+            tests:
+              - not_null
+          - name: geolocation_city
+            description: "City corresponding to the zip code prefix."
+            tests:
+              - not_null
+          - name: geolocation_state
+            description: "State corresponding to the zip code prefix."
+            tests:
+              - not_null
+
+      - name: stg_order_items_dataset
+        identifier: stg_order_items_dataset
+        description: "Raw data of items purchased within orders."
+        columns:
+          - name: order_id
+            description: "Unique identifier for an order."
+            tests:
+              - not_null
+          - name: product_id
+            description: "Foreign key linking to products dataset."
+            tests:
+              - not_null
+          - name: seller_id
+            description: "Foreign key linking to sellers dataset."
+            tests:
+              - not_null
+          - name: price
+            description: "Price of the item."
+            tests:
+              - not_null
+              - dbt_expectations.expect_column_values_to_be_between:
+                  min_value: 0
+          - name: freight_value
+            description: "Shipping cost for the item."
+            tests:
+              - not_null
+              - dbt_expectations.expect_column_values_to_be_between:
+                  min_value: 0
+
+      - name: stg_order_payments_dataset
+        identifier: stg_order_payments_dataset
+        description: "Raw data on payments for orders."
+        columns:
+          - name: order_id
+            description: "Foreign key linking to orders dataset."
+            tests:
+              - not_null
+          - name: payment_type
+            description: "Type of payment method used."
+            tests:
+              - not_null
+          - name: payment_value
+            description: "Total amount paid."
+            tests:
+              - not_null
+              - dbt_expectations.expect_column_values_to_be_between:
+                  min_value: 0
+
+      - name: stg_order_reviews_dataset
+        identifier: stg_order_reviews_dataset
+        description: "Customer reviews and ratings for orders."
+        columns:
+          - name: review_id
+            description: "Unique identifier for a review. May contain duplicates."
+            tests:
+              - not_null
+          - name: order_id
+            description: "Foreign key linking to orders dataset."
+            tests:
+              - not_null
+          - name: review_score
+            description: "Customer rating score (1-5)."
+            tests:
+              - not_null
+              - dbt_expectations.expect_column_values_to_be_between:
+                  min_value: 1
+                  max_value: 5
+          - name: review_creation_date
+            description: "Date when the review was created."
+            tests:
+              - not_null
+
+      - name: stg_orders_dataset
+        identifier: stg_orders_dataset
+        description: "Raw order transaction data."
+        columns:
+          - name: order_id
+            description: "Unique identifier for an order."
+            tests:
+              - unique
+              - not_null
+          - name: customer_id
+            description: "Foreign key linking to customers dataset."
+            tests:
+              - not_null
+          - name: order_status
+            description: "Current status of the order."
+            tests:
+              - not_null
+          - name: order_purchase_timestamp
+            description: "Timestamp when the order was placed."
+            tests:
+              - not_null
+
+      - name: stg_product_category_name_translation_dataset
+        identifier: stg_product_category_name_translation_dataset
+        description: "Mapping of product categories to their English translations."
+        columns:
+          - name: product_category_name
+            description: "Original product category name."
+            tests:
+              - unique
+              - not_null
+          - name: product_category_name_english
+            description: "Translated product category name in English."
+            tests:
+              - not_null
+
+      - name: stg_products_dataset
+        identifier: stg_products_dataset
+        description: "Raw product data containing product attributes and categories."
+        columns:
+          - name: product_id
+            description: "Unique identifier for a product."
+            tests:
+              - unique
+              - not_null
+          - name: product_category_name
+            description: "Category name of the product."
+          - name: product_photos_qty
+            description: "Number of photos available for the product."
+            tests:
+              - dbt_expectations.expect_column_values_to_be_between:
+                  min_value: 0
+          - name: product_weight_g
+            description: "Weight of the product in grams."
+            tests:
+              - dbt_expectations.expect_column_values_to_be_between:
+                  min_value: 0
+
+      - name: stg_sellers_dataset
+        identifier: stg_sellers_dataset
+        description: "Raw seller data containing location details."
+        columns:
+          - name: seller_id
+            description: "Unique identifier for a seller."
+            tests:
+              - unique
+              - not_null
+          - name: seller_zip_code_prefix
+            description: "Zip code prefix of the seller's location."
+          - name: seller_city
+            description: "City where the seller is located."
+            tests:
+              - not_null
+          - name: seller_state
+            description: "State where the seller is located."
+            tests:
+              - not_null

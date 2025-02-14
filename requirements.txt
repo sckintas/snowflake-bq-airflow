@@ -1,0 +1,5 @@
+apache-airflow-providers-google
+apache-airflow-providers-snowflake
+google-cloud-bigquery
+pandas
+dbt-bigquery==1.6.6

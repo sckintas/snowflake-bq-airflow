@@ -1,0 +1,73 @@
+services:
+  airflow-webserver:
+    build: .
+    container_name: airflow-webserver
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__CORE__FERNET_KEY=JrTtFpzYte58iHaDM3poHvRS1MyesOPXqsnD9dOtyRI=
+      - AIRFLOW__API__AUTH_BACKEND=airflow.api.auth.backend.basic_auth
+      - GOOGLE_APPLICATION_CREDENTIALS=/opt/airflow/keys/service-account.json  
+      - DBT_PROFILES_DIR=/home/airflow/.dbt  
+      - DBT_PROJECT_DIR=/opt/airflow/dbt_project   
+    volumes:
+      - ./dbt_project:/opt/airflow/dbt_project
+      - ./dags:/opt/airflow/dags
+      - airflow_logs:/opt/airflow/logs
+      - airflow_plugins:/opt/airflow/plugins
+      - ./secrets/service-account.json:/opt/airflow/keys/service-account.json:ro
+    ports:
+      - "8081:8080"
+    entrypoint: >
+      sh -c "airflow db upgrade &&
+             airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com &&
+             airflow webserver"
+
+  airflow-scheduler:
+    build: .
+    container_name: airflow-scheduler
+    restart: always
+    depends_on:
+      - postgres
+      - airflow-webserver
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__FERNET_KEY=JrTtFpzYte58iHaDM3poHvRS1MyesOPXqsnD9dOtyRI=
+      - GOOGLE_APPLICATION_CREDENTIALS=/opt/airflow/keys/service-account.json
+      - DBT_PROFILES_DIR=/home/airflow/.dbt  
+      - DBT_PROJECT_DIR=/opt/airflow/dbt_project   
+    volumes:
+      - ./dbt_project:/opt/airflow/dbt_project
+      - ./dags:/opt/airflow/dags
+      - airflow_logs:/opt/airflow/logs
+      - airflow_plugins:/opt/airflow/plugins
+      - ./secrets/service-account.json:/opt/airflow/keys/service-account.json:ro
+    command: ["airflow", "scheduler"]
+
+  postgres:
+    image: postgres:13
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow"]
+      interval: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  airflow_logs:
+  airflow_plugins:
+  postgres_data:

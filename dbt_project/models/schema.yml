@@ -1,0 +1,215 @@
+version: 2
+
+models:
+  - name: dim_product_category_translation
+    description: "Product category translations with a stable surrogate key"
+    columns:
+      - name: product_category_id
+        description: "Surrogate key for product categories"
+        tests:
+          - unique
+          - not_null
+      - name: product_category_name
+        description: "Original product category name"
+        tests:
+          - not_null
+      - name: product_category_name_translated
+        description: "Translated product category name"
+        tests:
+          - not_null
+
+  - name: dim_products
+    description: "Products with category information and attributes"
+    columns:
+      - name: product_id
+        description: "Unique identifier for the product"
+        tests:
+          - unique
+          - not_null
+      - name: product_category_id
+        description: "Foreign key to dim_product_category_translation"
+        tests:
+          - not_null
+      - name: product_category_name
+        description: "Category name of the product"
+        tests:
+          - not_null
+      - name: product_name_lenght
+        description: "Length of the product name"
+      - name: product_description_lenght
+        description: "Length of the product description"
+      - name: product_photos_qty
+        description: "Number of photos for the product"
+      - name: product_weight_g
+        description: "Weight of the product in grams"
+      - name: product_length_cm
+        description: "Length of the product in cm"
+      - name: product_height_cm
+        description: "Height of the product in cm"
+      - name: product_width_cm
+        description: "Width of the product in cm"
+
+  - name: dim_customers
+    description: "Customer details with unique customer IDs"
+    columns:
+      - name: customer_id
+        description: "Unique identifier for a customer"
+        tests:
+          - unique
+          - not_null
+      - name: customer_unique_id
+        description: "Non-unique identifier for a customer used across multiple orders"
+        tests:
+          - not_null
+      - name: customer_zip_code_prefix
+        description: "Zip code prefix for the customer's location"
+      - name: customer_city
+        description: "City of the customer"
+        tests:
+          - not_null
+      - name: customer_state
+        description: "State of the customer"
+        tests:
+          - not_null
+
+  - name: dim_sellers
+    description: "Seller details with geolocation mapping"
+    columns:
+      - name: seller_id
+        description: "Unique identifier for a seller"
+        tests:
+          - unique
+          - not_null
+      - name: seller_zip_code_prefix
+        description: "Zip code prefix of the seller's location"
+      - name: seller_city
+        description: "City where the seller is located"
+        tests:
+          - not_null
+      - name: seller_state
+        description: "State where the seller is located"
+        tests:
+          - not_null
+
+  - name: dim_geolocation
+    description: "Geolocation data for zip code prefixes, including latitude and longitude"
+    columns:
+      - name: geolocation_zip_code_prefix
+        description: "Unique identifier for geographic locations"
+        tests:
+          - unique
+          - not_null
+      - name: geolocation_lat
+        description: "Latitude coordinate"
+      - name: geolocation_lng
+        description: "Longitude coordinate"
+      - name: geolocation_city
+        description: "City corresponding to the zip code prefix"
+        tests:
+          - not_null
+      - name: geolocation_state
+        description: "State corresponding to the zip code prefix"
+        tests:
+          - not_null
+
+  - name: orders_fact
+    description: "Fact table containing order transactions, linked to customers"
+    columns:
+      - name: order_id
+        description: "Unique identifier for an order"
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: "Foreign key to dim_customers"
+        tests:
+          - not_null
+      - name: customer_unique_id
+        description: "Non-unique identifier for a customer used across multiple orders"
+        tests:
+          - not_null
+      - name: order_status
+        description: "Current status of the order (e.g., delivered, shipped)"
+        tests:
+          - not_null
+      - name: order_purchase_timestamp
+        description: "Timestamp when the order was placed"
+        tests:
+          - not_null
+      - name: order_approved_at
+        description: "Timestamp when the order was approved"
+      - name: order_delivered_carrier_date
+        description: "Timestamp when the order was shipped"
+      - name: order_delivered_customer_date
+        description: "Timestamp when the order was delivered"
+      - name: order_estimated_delivery_date
+        description: "Expected delivery date of the order"
+
+  - name: orders_reviews_fact
+    description: "Fact table containing customer reviews and ratings for orders"
+    columns:
+      - name: review_id
+        description: "Unique identifier for a review"
+        tests:
+          - unique
+          - not_null
+      - name: order_id
+        description: "Foreign key linking to orders_fact"
+        tests:
+          - not_null
+      - name: review_score
+        description: "Customer rating score (1-5)"
+        tests:
+          - not_null
+      - name: review_creation_date
+        description: "Date when the review was created"
+        tests:
+          - not_null
+      - name: review_answer_timestamp
+        description: "Timestamp when the review was answered"
+
+  - name: order_items_fact
+    description: "Fact table containing details of each item within an order"
+    columns:
+      - name: order_id
+        description: "Foreign key linking to orders_fact"
+        tests:
+          - not_null
+      - name: product_id
+        description: "Foreign key linking to dim_products"
+        tests:
+          - not_null
+      - name: seller_id
+        description: "Foreign key linking to dim_sellers"
+        tests:
+          - not_null
+      - name: shipping_limit_date
+        description: "Deadline for order shipment"
+      - name: price
+        description: "Price of the item"
+        tests:
+          - not_null
+      - name: freight_value
+        description: "Shipping cost for the item"
+        tests:
+          - not_null
+
+  - name: order_payments_fact
+    description: "Fact table containing payments related to orders"
+    columns:
+      - name: order_id
+        description: "Foreign key linking to orders_fact"
+        tests:
+          - not_null
+      - name: payment_sequential
+        description: "Sequential identifier for payments within an order"
+      - name: payment_type
+        description: "Type of payment method used"
+        tests:
+          - not_null
+      - name: payment_installments
+        description: "Number of installments for the payment"
+      - name: payment_value
+        description: "Total amount paid"
+        tests:
+          - not_null
