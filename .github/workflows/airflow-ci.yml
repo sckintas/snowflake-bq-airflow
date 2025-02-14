@@ -1,0 +1,27 @@
+name: Airflow CI
+
+on: [push, pull_request]
+
+jobs:
+  airflow-lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Install dependencies
+        run: |
+          pip install apache-airflow apache-airflow-providers-google apache-airflow-providers-snowflake flake8
+
+      - name: Lint DAGs
+        run: |
+          flake8 dags/ --max-line-length=120
+
+      - name: Test DAG imports
+        run: |
+          python -m unittest discover -s dags/ -p "test_*.py"
