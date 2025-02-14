@@ -39,25 +39,6 @@ jobs:
           cd /opt/airflow/dbt_project
           dbt test
 
-      - name: Test Connection to Airflow
-        env:
-          AIRFLOW_SERVER: ${{ secrets.AIRFLOW_SERVER }}
+      - name: Test Connection to Local Airflow
         run: |
-          curl -I http://${{ secrets.AIRFLOW_SERVER }}:8080 || echo "❌ Airflow is not reachable"
-
-      - name: Deploy DAGs to Airflow Server
-        env:
-          AIRFLOW_SERVER: ${{ secrets.AIRFLOW_SERVER }}
-          AIRFLOW_USER: ${{ secrets.AIRFLOW_USER }}
-        run: |
-          scp -r dags/ $AIRFLOW_USER@$AIRFLOW_SERVER:/opt/airflow/dags/
-          ssh $AIRFLOW_USER@$AIRFLOW_SERVER "sudo systemctl restart airflow-scheduler"
-
-      - name: Notify Slack on Failure
-        if: failure()
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        run: |
-          curl -X POST -H 'Content-type: application/json' --data '{
-            "text": "🚨 Airflow CI/CD Pipeline Failed! Check GitHub Actions logs for details."
-          }' $SLACK_WEBHOOK_URL
+          curl -I http://localhost:8080 || echo "❌ Airflow is not reachable"
