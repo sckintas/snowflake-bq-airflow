@@ -16,3 +16,4 @@ dbt_project/logs/
 # Ignore environment variables and keys
 .env
 keys/
+"terraform/.terraform/" 
