@@ -31,7 +31,19 @@ jobs:
         run: |
           export DBT_PROFILES_DIR=$HOME/.dbt
           mkdir -p $DBT_PROFILES_DIR
-          echo '{}' > $DBT_PROFILES_DIR/profiles.yml  # Create a dummy profiles.yml for testing
+          cat > $DBT_PROFILES_DIR/profiles.yml <<EOL
+          dbt_project:
+            outputs:
+              dev:
+                type: bigquery
+                method: service-account
+                project: expanded-curve-448520-h8
+                dataset: raw_ecommerce
+                threads: 4
+                keyfile: $DBT_PROFILES_DIR/service-account.json
+            target: dev
+          EOL
+
 
 
       - name: Run dbt Tests
