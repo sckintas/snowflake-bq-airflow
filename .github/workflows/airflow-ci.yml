@@ -36,8 +36,9 @@ jobs:
 
       - name: Run dbt Tests
         run: |
-          cd /opt/airflow/dbt_project
+          cd $GITHUB_WORKSPACE/dbt_project
           dbt test
+
 
       - name: Test Connection to Local Airflow
         run: |
