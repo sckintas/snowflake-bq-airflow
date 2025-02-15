@@ -157,4 +157,4 @@ jobs:
 
       - name: Test Connection to Local Airflow
         run: |
-          curl -I http://localhost:8080 || echo "❌ Airflow is not reachable"
+          curl -I http://localhost:8080 || echo "Airflow is not reachable"
