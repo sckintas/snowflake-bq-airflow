@@ -46,6 +46,11 @@ jobs:
 
 
 
+      - name: Install dbt Dependencies
+        run: |
+          cd $GITHUB_WORKSPACE/dbt_project
+          dbt deps
+
       - name: Run dbt Tests
         run: |
           cd $GITHUB_WORKSPACE/dbt_project
