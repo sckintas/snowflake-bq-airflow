@@ -1,4 +1,4 @@
-# Airflow to BigQuery ETL Pipeline
+#Snowflake to BigQuery ETL Pipeline
 
 ## Table of Contents
 - [Introduction](#introduction)
